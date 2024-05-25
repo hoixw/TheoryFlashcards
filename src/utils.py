@@ -5,7 +5,6 @@ from pathlib import Path
 
 import genanki
 import requests
-from bs4 import BeautifulSoup
 from slugify import slugify
 
 # Create Question Models
@@ -85,72 +84,62 @@ __FIVE_IMAGE_MODEL = genanki.Model(
     ]
 )
 
-
-def __parse_html_question(id):
-    """Parse the HTML response from the question (POST) request."""
-    url = f"https://mocktheorytest.com/checkquestion/car/all/0/{id}/"
-    response = requests.post(url)
+def __parse_questions(url):
+    response = requests.get(url)
 
     if response.status_code == 200:
-        soup = BeautifulSoup(response.text, 'html.parser')
+        data = response.json()
+        results = []
 
-        # Extract the question
-        question = soup.find('span', class_='question-text').text
+        for question_data in data['questions']:
+            question = question_data['text']
 
-        # Extract the answer options
-        options = soup.find_all('li', id=lambda x: x and x.startswith('li_'))
-        option_texts = [option.find('p').text for option in options]
+            # Initialize the option_texts and image_urls arrays
+            option_texts = []
+            image_urls = []
 
-        # Extract image URLs within the 'minheight' div
-        minheight_div = soup.find('div', class_='minheight')
-        image_tags = minheight_div.find_all('img')
-        image_urls = [tag['src'] for tag in image_tags]
+            # Add the question's image_url if it's not null
+            if question_data['image_url']:
+                image_urls.append(question_data['image_url'])
 
-        return question, option_texts, image_urls
+            for idx, option in enumerate(question_data['options']):
+                prefix = chr(65 + idx) + ". "  # 'A. ', 'B. ', 'C. ', 'D. '
+                
+                # Get the option text, or an empty string if it's null
+                option_text = option['text'] if option['text'] is not None else ""
+                
+                # Add the prefix to the option text if it's non-null
+                if option_text:
+                    option_text = prefix + option_text
+                
+                option_texts.append(option_text)
+                
+                # Add the image_url to the image_urls array if it's not null
+                if option['image_url']:
+                    image_urls.append(option['image_url'])
+
+            correct_answer = ""
+            for idx, option in enumerate(question_data['options']):
+                if option['is_correct']:
+                    answer_letter = chr(65 + idx)  # Convert index to letter (A, B, C, D)
+                    correct_answer = f"Correct: {answer_letter}<br>\n<br>\n{question_data['explanation']}"
+                    break
+
+            # Append the result to the results list
+            results.append([question, option_texts, image_urls, correct_answer])
+    
     else:
         raise TypeError(f"""
         Failed to fetch question data.\n
         Response: {response}\n
         Status code: {response.status_code}
         """)
-
-
-def __parse_html_answer(id):
-    """Parse the HTML response from the answer (GET) request."""
-    base_url = "https://mocktheorytest.com/highway-code/post.php"
-    answers = ['a', 'b', 'c', 'd']
-
-    for answer in answers:
-        params = {
-            "answer_a": answer,
-            "id": id,
-            "amount_correct": "",
-            "incorrect_ids": "",
-            "rx": ""
-        }
-        response = requests.get(base_url, params=params)
-
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-
-            if soup.find('span', class_='correct'):
-                result_text = soup.find('span', class_='result-normal').text
-                return f"Correct: {answer.upper()}<br>\n<br>\n{result_text}"
-        else:
-            raise TypeError(f"""
-            Failed to fetch answer data.\n
-            Response: {response}\n
-            Status code: {response.status_code}
-            """)
-
-    raise TypeError("No correct answer found.")
-
-
-def __download_image(subdir, output_dir):
-    """Download an image and save it to the specified directory."""
-    subdir = subdir.replace(" ", "")    
-    url = f"https://mocktheorytest.com{subdir}"
     
+    return results
+
+
+def __download_image(url, output_dir):
+    """Download an image and save it to the specified directory."""
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
     response.raise_for_status()
 
@@ -165,17 +154,15 @@ def __download_image(subdir, output_dir):
     return img_name
 
 
-def __build_package(name, IDs, test):
+def __build_package(name, url, test):
     """Build an Anki package from the given IDs."""
     media_files = []
     my_deck = genanki.Deck(random.randrange(1 << 30, 1 << 31), name)
+
+    results = __parse_questions(url)
+    count = 1
     
-    for id in IDs:
-        # Parse the POST request HTML
-        question, option_texts, image_urls = __parse_html_question(id)
-    
-        # Parse the GET request HTML
-        correct_answer = __parse_html_answer(id)
+    for question, option_texts, image_urls, correct_answer in results:
     
         # There will either be 0, 1 or 4 images, pick model off this
         # Apparently there are also 5
@@ -213,7 +200,8 @@ def __build_package(name, IDs, test):
             fields=fields
         )
         my_deck.add_note(my_note)
-        print(f"Flashcard {id} created on deck {name} for {test}")
+        print(f"Flashcard {count} created on deck {name} for {test}")
+        count += 1
     
 
     package = genanki.Package(my_deck)
@@ -222,13 +210,13 @@ def __build_package(name, IDs, test):
     
     print(f"\n\nAnki package for {name} in {test} created successfully!\n\n")
 
-def build_flashcards(ID_DICT, test):
-    """Takes ID_DICT: Dictionary of flashcard IDs, test: string corresponding to test"""
+def build_flashcards(URL_DICT, test):
+    """Takes URL_DICT: Dictionary of flashcard URLs, test: string corresponding to test"""
 
     ## make folder for media and flashcards
     Path("temp/").mkdir(exist_ok=True)
     Path("../flashcards/").mkdir(exist_ok=True)
     Path(f"../flashcards/{test}/").mkdir(exist_ok=True)
 
-    for name, IDs in ID_DICT.items():
-        __build_package(name, IDs, test)
+    for name, url in URL_DICT.items():
+        __build_package(name, url, test)

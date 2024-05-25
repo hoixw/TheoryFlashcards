@@ -6,9 +6,10 @@ with open('requirements.txt') as f:
 
 setup(
     name='TheoryFlashcards',
-    version='1.0',
+    version='1.1',
     packages=find_packages(),
     install_requires=required,
+    license = "GNU GPLv3",
     author='Sachin Thakrar',
     author_email='contact@sachinthakrar.me',
     description='A project to construct flashcards for all Driving Theory Tests',
@@ -17,7 +18,7 @@ setup(
     url='https://github.com/hoixw/TheoryFlashcards',  # Replace with your project's URL
     classifiers=[
         'Programming Language :: Python :: 3',
-       'License :: OSI Approved :: Apache Software License',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.8',
