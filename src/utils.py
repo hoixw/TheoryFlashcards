@@ -150,6 +150,7 @@ def __download_image(subdir, output_dir):
     """Download an image and save it to the specified directory."""
     subdir = subdir.replace(" ", "")    
     url = f"https://mocktheorytest.com{subdir}"
+    
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
     response.raise_for_status()
 
@@ -226,8 +227,8 @@ def build_flashcards(ID_DICT, test):
 
     ## make folder for media and flashcards
     Path("temp/").mkdir(exist_ok=True)
-    Path("../../flashcards/").mkdir(exist_ok=True)
-    Path(f"../../flashcards/{test}/").mkdir(exist_ok=True)
+    Path("../flashcards/").mkdir(exist_ok=True)
+    Path(f"../flashcards/{test}/").mkdir(exist_ok=True)
 
     for name, IDs in ID_DICT.items():
         __build_package(name, IDs, test)

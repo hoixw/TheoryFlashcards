@@ -8,8 +8,9 @@ This project contains the flashcards outputted by the code in `/Flashcards`. In 
 To reconstruct all the flashcards, go to `./src/` and run `setup.py`. This will install all the necessary dependencies. Run all the commands below in `./src/` also.
 
 1. If you would like to reconstruct ALL flashcards, run `main.py`.
-2. If you would like to reconstruct certain types of flashcards, these can be provided as command line options. For example, to reconstruct car and motorbike, run `main.py car motorbike`. These can be provided in any order. 
+2. If you would like to reconstruct certain types of flashcards, these can be provided as command line options. For example, to reconstruct car and motorbike, run `main.py car motorbike`. These can be provided in any order. Options are `car`, `motorbike`, `bus`, `lorry`, and `adi`.
 3. Downwloaded image files are stored in `/src/temp/`. These can be safely deleted after running, or deleted by running `main.py --clean`. 
+
 
 ## Dependencies
 ```
